@@ -1,4 +1,4 @@
-﻿# CMakeList.txt: proyecto de CMake para ABMonty, incluya el origen y defina
+﻿# CMakeLists.txt: proyecto de CMake para ABMonty, incluya el origen y defina
 # la lógica específica del proyecto aquí.
 #
 cmake_minimum_required (VERSION 3.8)
@@ -12,7 +12,7 @@ endif()
 project ("ABMonty")
 
 # Agregue un origen al ejecutable de este proyecto.
-add_executable (ABMonty "ABMonty.cpp" "ABMonty.h")
+add_executable (ABMonty "ABMonty.cpp")
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET ABMonty PROPERTY CXX_STANDARD 20)
