@@ -85,76 +85,162 @@ public:
         pacientes.push_back(paciente);
     }
 
-    void agregarMedico(const Medico& medico) {
-        medicos.push_back(medico);
-    }
-
-    void agregarCita(const CitaMedica& cita) {
-        citas.push_back(cita);
-    }
-
-    void agregarServicio(const Servicio& servicio) {
-        servicios.push_back(servicio);
+    void eliminarPaciente(int id) {
+        for (auto it = pacientes.begin(); it != pacientes.end(); ++it) {
+            if (it->getId() == id) {
+                pacientes.erase(it);
+                cout << "Paciente eliminado con éxito.\n";
+                return;
+            }
+        }
+        cout << "Paciente con ID " << id << " no encontrado.\n";
     }
 
     void listarPacientes() const {
+        if (pacientes.empty()) {
+            cout << "No hay pacientes registrados.\n";
+            return;
+        }
         for (const auto& paciente : pacientes)
             paciente.mostrarDatos();
     }
 
+    void menuPacientes() {
+        int opcion;
+        do {
+            cout << "\n=== Menú de Pacientes ===\n";
+            cout << "1. Listar Pacientes\n";
+            cout << "2. Añadir Paciente\n";
+            cout << "3. Eliminar Paciente\n";
+            cout << "4. Volver al menú principal\n";
+            cout << "Seleccione una opción: ";
+            cin >> opcion;
+
+            switch (opcion) {
+            case 1:
+                listarPacientes();
+                break;
+            case 2: {
+                int id;
+                string nombre, historial;
+                cout << "Introduzca ID: ";
+                cin >> id;
+                cout << "Introduzca Nombre: ";
+                cin.ignore();
+                getline(cin, nombre);
+                cout << "Introduzca Historial Médico: ";
+                getline(cin, historial);
+                agregarPaciente(Paciente(id, nombre, historial));
+                cout << "Paciente añadido con éxito.\n";
+                break;
+            }
+            case 3: {
+                int id;
+                cout << "Introduzca el ID del paciente a eliminar: ";
+                cin >> id;
+                eliminarPaciente(id);
+                break;
+            }
+            case 4:
+                cout << "Volviendo al menú principal...\n";
+                break;
+            default:
+                cout << "Opción no válida. Intente de nuevo.\n";
+            }
+        } while (opcion != 4);
+    }
+
+    void agregarMedico(const Medico& medico) {
+        medicos.push_back(medico);
+    }
+
+    void eliminarMedico(int id) {
+        for (auto it = medicos.begin(); it != medicos.end(); ++it) {
+            if (it->getId() == id) {
+                medicos.erase(it);
+                cout << "Médico eliminado con éxito.\n";
+                return;
+            }
+        }
+        cout << "Médico con ID " << id << " no encontrado.\n";
+    }
+
     void listarMedicos() const {
+        if (medicos.empty()) {
+            cout << "No hay médicos registrados.\n";
+            return;
+        }
         for (const auto& medico : medicos)
             medico.mostrarDatos();
     }
 
-    void listarCitas() const {
-        for (const auto& cita : citas)
-            cita.mostrarDatos();
-    }
+    void menuMedicos() {
+        int opcion;
+        do {
+            cout << "\n=== Menú de Médicos ===\n";
+            cout << "1. Listar Médicos\n";
+            cout << "2. Añadir Médico\n";
+            cout << "3. Eliminar Médico\n";
+            cout << "4. Volver al menú principal\n";
+            cout << "Seleccione una opción: ";
+            cin >> opcion;
 
-    void listarServicios() const {
-        for (const auto& servicio : servicios)
-            servicio.mostrarDatos();
+            switch (opcion) {
+            case 1:
+                listarMedicos();
+                break;
+            case 2: {
+                int id;
+                string nombre, especialidad;
+                cout << "Introduzca ID: ";
+                cin >> id;
+                cout << "Introduzca Nombre: ";
+                cin.ignore();
+                getline(cin, nombre);
+                cout << "Introduzca Especialidad: ";
+                getline(cin, especialidad);
+                agregarMedico(Medico(id, nombre, especialidad));
+                cout << "Médico añadido con éxito.\n";
+                break;
+            }
+            case 3: {
+                int id;
+                cout << "Introduzca el ID del médico a eliminar: ";
+                cin >> id;
+                eliminarMedico(id);
+                break;
+            }
+            case 4:
+                cout << "Volviendo al menú principal...\n";
+                break;
+            default:
+                cout << "Opción no válida. Intente de nuevo.\n";
+            }
+        } while (opcion != 4);
     }
 };
 
 int main() {
     GestorHospitalario gestor;
 
-    gestor.agregarPaciente(Paciente(1, "Juan Perez", "Sin alergias"));
-    gestor.agregarMedico(Medico(1, "Dra. Maria Lopez", "Cardiología"));
-    gestor.agregarCita(CitaMedica(1, Paciente(1, "Juan Perez", "Sin alergias"),
-        Medico(1, "Dra. Maria Lopez", "Cardiología"), "2024-12-04"));
-    gestor.agregarServicio(Servicio(1, "Radiografía", "Diagnóstico por imagen"));
-
     int opcion = 0;
 
     do {
-        cout << "\n=== Menú de Opciones ===\n";
-        cout << "1. Listar Pacientes\n";
-        cout << "2. Listar Médicos\n";
-        cout << "3. Listar Citas Médicas\n";
-        cout << "4. Listar Servicios\n";
+        cout << "\n=== Menú Principal ===\n";
+        cout << "1. Pacientes\n";
+        cout << "2. Médicos\n";
+        cout << "3. Citas Médicas\n";
+        cout << "4. Servicios\n";
         cout << "5. Salir\n";
         cout << "Seleccione una opción: ";
         cin >> opcion;
 
         switch (opcion) {
         case 1:
-            cout << "\nPacientes registrados:\n";
-            gestor.listarPacientes();
+            gestor.menuPacientes();
             break;
         case 2:
-            cout << "\nMédicos registrados:\n";
-            gestor.listarMedicos();
-            break;
-        case 3:
-            cout << "\nCitas médicas registradas:\n";
-            gestor.listarCitas();
-            break;
-        case 4:
-            cout << "\nServicios disponibles:\n";
-            gestor.listarServicios();
+            gestor.menuMedicos();
             break;
         case 5:
             cout << "Saliendo del programa.\n";
