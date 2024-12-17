@@ -4,6 +4,7 @@
 #include <fstream>
 #include <sstream>
 #include <algorithm>
+#include <locale>
 using namespace std;
 
 class Medico {
@@ -45,42 +46,188 @@ public:
 class Paciente {
     int id;
     string nombre;
-    string enfermedad;
+    string historial;
 public:
-    Paciente(int id, string nombre, string enfermedad)
-        : id(id), nombre(nombre), enfermedad(enfermedad) {}
+    Paciente(int id, string nombre, string historial)
+        : id(id), nombre(nombre), historial(historial) {}
 
     int getId() const { return id; }
     string getNombre() const { return nombre; }
-    string getEnfermedad() const { return enfermedad; }
+    string getHistorial() const { return historial; }
 
     void mostrarDatos() const {
         cout << "ID: " << id << ", Nombre: " << nombre
-            << ", Enfermedad: " << enfermedad << endl;
+            << ", Historial: " << historial << endl;
     }
 
     string toCSV() const {
-        return to_string(id) + "," + nombre + "," + enfermedad;
+        return to_string(id) + "," + nombre + "," + historial;
     }
 
     static Paciente fromCSV(const string& linea) {
         stringstream ss(linea);
-        string idStr, nombre, enfermedad;
+        string idStr, nombre, historial;
         getline(ss, idStr, ',');
         getline(ss, nombre, ',');
-        getline(ss, enfermedad, ',');
+        getline(ss, historial, ',');
 
-        if (idStr.empty() || nombre.empty() || enfermedad.empty()) {
+        if (idStr.empty() || nombre.empty() || historial.empty()) {
             throw invalid_argument("Paciente inválido en línea CSV");
         }
 
-        return Paciente(stoi(idStr), nombre, enfermedad);
+        return Paciente(stoi(idStr), nombre, historial);
     }
 };
+
+class CitaMedica {
+    int idCita;
+    int idPaciente;
+    int idMedico;
+    string fecha;
+public:
+    CitaMedica(int idCita, int idPaciente, int idMedico, string fecha)
+        : idCita(idCita), idPaciente(idPaciente), idMedico(idMedico), fecha(fecha) {}
+
+    int getIdCita() const { return idCita; }
+    int getIdPaciente() const { return idPaciente; }
+    int getIdMedico() const { return idMedico; }
+    string getFecha() const { return fecha; }
+
+    void mostrarDatos() const {
+        cout << "ID Cita: " << idCita
+            << ", ID Paciente: " << idPaciente
+            << ", ID Médico: " << idMedico
+            << ", Fecha: " << fecha << endl;
+    }
+
+    void editarCita(int nuevoIdPaciente, int nuevoIdMedico, const string& nuevaFecha) {
+        idPaciente = nuevoIdPaciente;
+        idMedico = nuevoIdMedico;
+        fecha = nuevaFecha;
+    }
+};
+
 
 class GestorHospitalario {
     vector<Medico> medicos;
     vector<Paciente> pacientes;
+    vector<CitaMedica> citas;
+
+    int calcularNuevoIDCitas() const {
+        if (citas.empty()) {
+            return 1;
+        }
+        int maxID = 0;
+        for (const auto& cita : citas) {
+            maxID = max(maxID, cita.getIdCita());
+        }
+        return maxID + 1;
+    }
+
+public:
+    // Funciones de Citas Médicas
+    void listarCitas() const {
+        if (citas.empty()) {
+            cout << "No hay citas médicas registradas.\n";
+            return;
+        }
+        for (const auto& cita : citas)
+            cita.mostrarDatos();
+    }
+
+    void agregarCita() {
+        int nuevoIDCita = calcularNuevoIDCitas();
+        int idPaciente, idMedico;
+        string fecha;
+
+        cout << "Introduzca ID del Paciente: ";
+        cin >> idPaciente;
+        cout << "Introduzca ID del Médico: ";
+        cin >> idMedico;
+        cout << "Introduzca la Fecha (Día-Mes-Año): ";
+        cin.ignore();
+        getline(cin, fecha);
+
+        citas.emplace_back(nuevoIDCita, idPaciente, idMedico, fecha);
+        cout << "Cita médica añadida con éxito. ID asignado: " << nuevoIDCita << endl;
+    }
+
+    void eliminarCita() {
+        int idCita;
+        cout << "Introduzca el ID de la cita a eliminar: ";
+        cin >> idCita;
+
+        for (auto it = citas.begin(); it != citas.end(); ++it) {
+            if (it->getIdCita() == idCita) {
+                citas.erase(it);
+                cout << "Cita médica eliminada con éxito.\n";
+                return;
+            }
+        }
+        cout << "Cita médica con ID " << idCita << " no encontrada.\n";
+    }
+
+    void editarCita() {
+        int idCita;
+        cout << "Introduzca el ID de la cita a editar: ";
+        cin >> idCita;
+
+        for (auto& cita : citas) {
+            if (cita.getIdCita() == idCita) {
+                int nuevoIdPaciente, nuevoIdMedico;
+                string nuevaFecha;
+
+                cout << "Introduzca el nuevo ID del Paciente: ";
+                cin >> nuevoIdPaciente;
+                cout << "Introduzca el nuevo ID del Médico: ";
+                cin >> nuevoIdMedico;
+                cout << "Introduzca la nueva Fecha (Día-Mes-Año): ";
+                cin.ignore();
+                getline(cin, nuevaFecha);
+
+                cita.editarCita(nuevoIdPaciente, nuevoIdMedico, nuevaFecha);
+                cout << "Cita médica editada con éxito.\n";
+                return;
+            }
+        }
+        cout << "Cita médica con ID " << idCita << " no encontrada.\n";
+    }
+
+    // Menú de Citas Médicas
+    void menuCitas() {
+        int opcion;
+        do {
+            cout << "\n=== Menú de Citas Médicas ===\n";
+            cout << "1. Listar Citas\n";
+            cout << "2. Añadir Cita\n";
+            cout << "3. Eliminar Cita\n";
+            cout << "4. Editar Cita\n";
+            cout << "5. Volver al Menú Principal\n";
+            cout << "Seleccione una opción: ";
+            cin >> opcion;
+
+            switch (opcion) {
+            case 1:
+                listarCitas();
+                break;
+            case 2:
+                agregarCita();
+                break;
+            case 3:
+                eliminarCita();
+                break;
+            case 4:
+                editarCita();
+                break;
+            case 5:
+                cout << "Volviendo al Menú Principal...\n";
+                break;
+            default:
+                cout << "Opción no válida. Intente de nuevo.\n";
+            }
+        } while (opcion != 5);
+    }
+
 
     // Métodos para manejar médicos
     void cargarMedicosDesdeCSV() {
@@ -314,16 +461,16 @@ public:
     }
 
     void agregarPaciente() {
-        string nombre, enfermedad;
+        string nombre, historial;
         int nuevoID = calcularNuevoIDPacientes();
 
         cout << "Introduzca Nombre: ";
         cin.ignore();
         getline(cin, nombre);
-        cout << "Introduzca Enfermedad: ";
-        getline(cin, enfermedad);
+        cout << "Introduzca Historial: ";
+        getline(cin, historial);
 
-        pacientes.push_back(Paciente(nuevoID, nombre, enfermedad));
+        pacientes.push_back(Paciente(nuevoID, nombre, historial));
         guardarPacientesEnCSV();
         cout << "Paciente añadido con éxito. ID asignado: " << nuevoID << endl;
     }
@@ -351,14 +498,14 @@ public:
 
         for (auto& paciente : pacientes) {
             if (paciente.getId() == id) {
-                string nuevoNombre, nuevaEnfermedad;
+                string nuevoNombre, nuevoHistorial;
                 cout << "Introduzca el nuevo nombre (actual: " << paciente.getNombre() << "): ";
                 cin.ignore();
                 getline(cin, nuevoNombre);
-                cout << "Introduzca la nueva enfermedad (actual: " << paciente.getEnfermedad() << "): ";
-                getline(cin, nuevaEnfermedad);
+                cout << "Introduzca el nueva historial (actual: " << paciente.getHistorial() << "): ";
+                getline(cin, nuevoHistorial);
 
-                paciente = Paciente(id, nuevoNombre, nuevaEnfermedad);
+                paciente = Paciente(id, nuevoNombre, nuevoHistorial);
                 guardarPacientesEnCSV();
                 cout << "Paciente actualizado con éxito.\n";
                 return;
@@ -448,7 +595,8 @@ public:
             cout << "\n=== Menú Principal ===\n";
             cout << "1. Pacientes\n";
             cout << "2. Médicos\n";
-            cout << "3. Salir\n";
+            cout << "3. Citas\n";
+            cout << "4. Salir\n";
             cout << "Seleccione una opción: ";
             cin >> opcion;
 
@@ -460,17 +608,23 @@ public:
                 menuMedicos();
                 break;
             case 3:
+                menuCitas();
+                break;
+            case 4:
                 cout << "Saliendo del programa.\n";
                 break;
             default:
                 cout << "Opción no válida. Intente de nuevo.\n";
             }
-        } while (opcion != 3);
+        } while (opcion != 4);
     }
 };
 
 int main() {
+    setlocale(LC_ALL, "Spanish");
+    system("chcp 65001");
     GestorHospitalario gestor;
     gestor.menuPrincipal();
+
     return 0;
 }
