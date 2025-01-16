@@ -5,6 +5,7 @@
 #include <sstream>
 #include <algorithm>
 #include <locale>
+#include <map>
 using namespace std;
 
 class Medico {
@@ -125,6 +126,8 @@ class GestorHospitalario {
     }
 
 public:
+
+
     // Funciones de Citas Médicas
     void listarCitas() const {
         if (citas.empty()) {
@@ -357,7 +360,6 @@ public:
         return nullptr;
     }
 
-public:
     GestorHospitalario() {
         cargarMedicosDesdeCSV();
         cargarPacientesDesdeCSV();
@@ -367,6 +369,7 @@ public:
         guardarMedicosEnCSV();
         guardarPacientesEnCSV();
     }
+
 
     // Funciones para médicos
     void listarMedicos() const {
@@ -460,6 +463,7 @@ public:
             paciente.mostrarDatos();
     }
 
+
     void agregarPaciente() {
         string nombre, historial;
         int nuevoID = calcularNuevoIDPacientes();
@@ -514,6 +518,25 @@ public:
         cout << "Paciente con ID " << id << " no encontrado.\n";
     }
 
+  
+
+    void listarPacientesConCronicas() const {
+        cout << "\n=== Pacientes con Enfermedades Crónicas ===\n";
+        bool encontrado = false;
+
+        for (const auto& paciente : pacientes) {
+            if (paciente.getHistorial().find("crónica") != string::npos ||
+                paciente.getHistorial().find("cronica") != string::npos) {
+                paciente.mostrarDatos();
+                encontrado = true;
+            }
+        }
+
+        if (!encontrado) {
+            cout << "No se encontraron pacientes con enfermedades crónicas.\n";
+        }
+    }
+
     // Menú de médicos
     void menuMedicos() {
         int opcion;
@@ -558,6 +581,7 @@ public:
         int opcion;
         do {
             cout << "\n=== Menú de Pacientes ===\n";
+            cout << "(IMPORTANTE, AL AÑADIR UN PACIENTE CON UNA ENFERMEDAD CRÓNICA, ESPECIFICAR LA PALABRA cronica/crónica EN SU HISTORIAL)\n";
             cout << "1. Listar Pacientes\n";
             cout << "2. Añadir Paciente\n";
             cout << "3. Eliminar Paciente\n";
@@ -588,6 +612,37 @@ public:
         } while (opcion != 5);
     }
 
+    // Menú reportes
+    void menuReportes() {
+        int opcion;
+        do {
+            cout << "\n=== Menú de Reportes ===\n";
+            cout << "1. Pacientes con Enfermedades Crónicas\n";
+            cout << "2. Pacientes Atendidos en un Rango de Fechas\n";
+            cout << "3. Citas Pendientes por Médico o Especialidad\n";
+            cout << "4. Volver al Menú Principal\n";
+            cout << "Seleccione una opción: ";
+            cin >> opcion;
+
+            switch (opcion) {
+            case 1:
+                listarPacientesConCronicas();
+                break;
+            case 2:
+                listarPacientesPorRangoDeFechas();
+                break;
+            case 3:
+                listarCitasPendientes();
+                break;
+            case 4:
+                cout << "Volviendo al Menú Principal...\n";
+                break;
+            default:
+                cout << "Opción no válida. Intente de nuevo.\n";
+            }
+        } while (opcion != 4);
+    }
+
     // Menú principal
     void menuPrincipal() {
         int opcion;
@@ -596,7 +651,8 @@ public:
             cout << "1. Pacientes\n";
             cout << "2. Médicos\n";
             cout << "3. Citas\n";
-            cout << "4. Salir\n";
+            cout << "4. Reportes\n";
+            cout << "5. Salir\n";
             cout << "Seleccione una opción: ";
             cin >> opcion;
 
@@ -611,14 +667,18 @@ public:
                 menuCitas();
                 break;
             case 4:
+                menuReportes();
+                break;
+            case 5:
                 cout << "Saliendo del programa.\n";
                 break;
             default:
                 cout << "Opción no válida. Intente de nuevo.\n";
             }
-        } while (opcion != 4);
-    }
+        } while (opcion != 5);
+    };
 };
+
 
 int main() {
     setlocale(LC_ALL, "Spanish");
