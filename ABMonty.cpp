@@ -6,7 +6,20 @@
 #include <algorithm>
 #include <locale>
 #include <map>
+#include <ctime>
 using namespace std;
+
+
+string obtenerFechaActual() {
+    time_t t = time(0);
+    struct tm* now = localtime(&t);
+
+    char buffer[11];
+    strftime(buffer, sizeof(buffer), "%d-%m-%Y", now);
+
+    return string(buffer);
+}
+
 
 class Medico {
     int id;
@@ -85,26 +98,35 @@ class CitaMedica {
     int idPaciente;
     int idMedico;
     string fecha;
+    string motivo;
+    string urgencia;
+
 public:
-    CitaMedica(int idCita, int idPaciente, int idMedico, string fecha)
-        : idCita(idCita), idPaciente(idPaciente), idMedico(idMedico), fecha(fecha) {}
+    CitaMedica(int idCita, int idPaciente, int idMedico, string fecha, string motivo, string urgencia)
+        : idCita(idCita), idPaciente(idPaciente), idMedico(idMedico), fecha(fecha), motivo(motivo), urgencia(urgencia) {}
 
     int getIdCita() const { return idCita; }
     int getIdPaciente() const { return idPaciente; }
     int getIdMedico() const { return idMedico; }
     string getFecha() const { return fecha; }
+    string getMotivo() const { return motivo; }
+    string getUrgencia() const { return urgencia; }
 
     void mostrarDatos() const {
         cout << "ID Cita: " << idCita
             << ", ID Paciente: " << idPaciente
             << ", ID Médico: " << idMedico
-            << ", Fecha: " << fecha << endl;
+            << ", Fecha: " << fecha
+            << ", Motivo: " << motivo
+            << ", Urgencia: " << urgencia << endl;
     }
 
-    void editarCita(int nuevoIdPaciente, int nuevoIdMedico, const string& nuevaFecha) {
+    void editarCita(int nuevoIdPaciente, int nuevoIdMedico, const string& nuevaFecha, const string& nuevoMotivo, const string& nuevaUrgencia) {
         idPaciente = nuevoIdPaciente;
         idMedico = nuevoIdMedico;
         fecha = nuevaFecha;
+        motivo = nuevoMotivo;
+        urgencia = nuevaUrgencia;
     }
 };
 
@@ -125,8 +147,25 @@ class GestorHospitalario {
         return maxID + 1;
     }
 
-public:
+    bool existeMedico(int idMedico) const {
+        for (const auto& medico : medicos) {
+            if (medico.getId() == idMedico) {
+                return true;
+            }
+        }
+        return false;
+    }
 
+    bool existePaciente(int idPaciente) const {
+        for (const auto& paciente : pacientes) {
+            if (paciente.getId() == idPaciente) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+public:
 
     // Funciones de Citas Médicas
     void listarCitas() const {
@@ -134,24 +173,52 @@ public:
             cout << "No hay citas médicas registradas.\n";
             return;
         }
-        for (const auto& cita : citas)
+
+        cout << "\n=== Listado de Citas Médicas ===\n";
+        for (const auto& cita : citas) {
             cita.mostrarDatos();
+        }
     }
 
     void agregarCita() {
         int nuevoIDCita = calcularNuevoIDCitas();
         int idPaciente, idMedico;
-        string fecha;
+        string fecha, motivo, urgencia;
 
         cout << "Introduzca ID del Paciente: ";
         cin >> idPaciente;
+        if (!existePaciente(idPaciente)) {
+            cout << "Error: El ID del paciente no existe. Intente de nuevo.\n";
+            return;
+        }
+
         cout << "Introduzca ID del Médico: ";
         cin >> idMedico;
+        if (!existeMedico(idMedico)) {
+            cout << "Error: El ID del médico no existe. Intente de nuevo.\n";
+            return;
+        }
+
         cout << "Introduzca la Fecha (Día-Mes-Año): ";
         cin.ignore();
         getline(cin, fecha);
+        cout << "Introduzca el Motivo de la Cita: ";
+        getline(cin, motivo);
 
-        citas.emplace_back(nuevoIDCita, idPaciente, idMedico, fecha);
+        int opcionUrgencia;
+        do {
+            cout << "Seleccione la Urgencia (1: Alta, 2: Media, 3: Baja): ";
+            cin >> opcionUrgencia;
+            switch (opcionUrgencia) {
+            case 1: urgencia = "Alta"; break;
+            case 2: urgencia = "Media"; break;
+            case 3: urgencia = "Baja"; break;
+            default: cout << "Opción no válida. Intente de nuevo.\n";
+            }
+        } while (opcionUrgencia < 1 || opcionUrgencia > 3);
+
+        citas.emplace_back(nuevoIDCita, idPaciente, idMedico, fecha, motivo, urgencia);
+        guardarCitasEnCSV();
         cout << "Cita médica añadida con éxito. ID asignado: " << nuevoIDCita << endl;
     }
 
@@ -163,6 +230,7 @@ public:
         for (auto it = citas.begin(); it != citas.end(); ++it) {
             if (it->getIdCita() == idCita) {
                 citas.erase(it);
+                guardarCitasEnCSV();
                 cout << "Cita médica eliminada con éxito.\n";
                 return;
             }
@@ -178,7 +246,7 @@ public:
         for (auto& cita : citas) {
             if (cita.getIdCita() == idCita) {
                 int nuevoIdPaciente, nuevoIdMedico;
-                string nuevaFecha;
+                string nuevaFecha, nuevoMotivo, nuevaUrgencia;
 
                 cout << "Introduzca el nuevo ID del Paciente: ";
                 cin >> nuevoIdPaciente;
@@ -187,13 +255,84 @@ public:
                 cout << "Introduzca la nueva Fecha (Día-Mes-Año): ";
                 cin.ignore();
                 getline(cin, nuevaFecha);
+                cout << "Introduzca el nuevo Motivo de la Cita: ";
+                getline(cin, nuevoMotivo);
 
-                cita.editarCita(nuevoIdPaciente, nuevoIdMedico, nuevaFecha);
+                int opcionUrgencia;
+                do {
+                    cout << "Seleccione la nueva Urgencia (1: Alta, 2: Media, 3: Baja): ";
+                    cin >> opcionUrgencia;
+                    switch (opcionUrgencia) {
+                    case 1: nuevaUrgencia = "Alta"; break;
+                    case 2: nuevaUrgencia = "Media"; break;
+                    case 3: nuevaUrgencia = "Baja"; break;
+                    default: cout << "Opción no válida. Intente de nuevo.\n";
+                    }
+                } while (opcionUrgencia < 1 || opcionUrgencia > 3);
+
+                cita.editarCita(nuevoIdPaciente, nuevoIdMedico, nuevaFecha, nuevoMotivo, nuevaUrgencia);
+                guardarCitasEnCSV();
                 cout << "Cita médica editada con éxito.\n";
                 return;
             }
         }
         cout << "Cita médica con ID " << idCita << " no encontrada.\n";
+    }
+
+    void listarCitasPendientes() {
+        string fechaActual = obtenerFechaActual();
+        int opcion;
+
+        cout << "\nSeleccione el criterio de búsqueda:\n";
+        cout << "1. Por Médico\n2. Por Especialidad\nOpción: ";
+        cin >> opcion;
+
+        if (opcion == 1) {
+            int idMedico;
+            cout << "\nIntroduzca el ID del Médico: ";
+            cin >> idMedico;
+
+            cout << "\n=== Citas Pendientes para el Médico ID " << idMedico << " (Fecha actual: " << fechaActual << ") ===\n";
+            bool encontrado = false;
+
+            for (const auto& cita : citas) {
+                if (cita.getIdMedico() == idMedico && cita.getFecha() >= fechaActual) {
+                    cita.mostrarDatos();
+                    encontrado = true;
+                }
+            }
+
+            if (!encontrado) {
+                cout << "No se encontraron citas pendientes para este médico.\n";
+            }
+        }
+        else if (opcion == 2) {
+            string especialidad;
+            cout << "\nIntroduzca la Especialidad: ";
+            cin.ignore();
+            getline(cin, especialidad);
+
+            cout << "\n=== Citas Pendientes para la Especialidad '" << especialidad << "' (Fecha actual: " << fechaActual << ") ===\n";
+            bool encontrado = false;
+
+            for (const auto& medico : medicos) {
+                if (medico.getEspecialidad() == especialidad) {
+                    for (const auto& cita : citas) {
+                        if (cita.getIdMedico() == medico.getId() && cita.getFecha() >= fechaActual) {
+                            cita.mostrarDatos();
+                            encontrado = true;
+                        }
+                    }
+                }
+            }
+
+            if (!encontrado) {
+                cout << "No se encontraron citas pendientes para esta especialidad.\n";
+            }
+        }
+        else {
+            cout << "\nOpción no válida.\n";
+        }
     }
 
     // Menú de Citas Médicas
@@ -360,14 +499,57 @@ public:
         return nullptr;
     }
 
+    //Métodos para manejar citas
+    void cargarCitasDesdeCSV() {
+        ifstream archivo("citas.csv");
+        if (!archivo) {
+            ofstream nuevoArchivo("citas.csv");
+            nuevoArchivo.close();
+            return;
+        }
+
+        string linea;
+        while (getline(archivo, linea)) {
+            if (!linea.empty()) {
+                stringstream ss(linea);
+                string idCitaStr, idPacienteStr, idMedicoStr, fecha, motivo, urgencia;
+                getline(ss, idCitaStr, ',');
+                getline(ss, idPacienteStr, ',');
+                getline(ss, idMedicoStr, ',');
+                getline(ss, fecha, ',');
+                getline(ss, motivo, ',');
+                getline(ss, urgencia, ',');
+
+                try {
+                    citas.emplace_back(stoi(idCitaStr), stoi(idPacienteStr), stoi(idMedicoStr), fecha, motivo, urgencia);
+                }
+                catch (const invalid_argument&) {
+                    cout << "Línea inválida en el archivo CSV de citas, se ignorará.\n";
+                }
+            }
+        }
+        archivo.close();
+    }
+
+
+    void guardarCitasEnCSV() const {
+        ofstream archivo("citas.csv", ios::trunc);
+        for (const auto& cita : citas) {
+            archivo << cita.getIdCita() << "," << cita.getIdPaciente() << "," << cita.getIdMedico() << "," << cita.getFecha() << "," << cita.getMotivo() << "," << cita.getUrgencia() << endl;
+        }
+        archivo.close();
+    }
+
     GestorHospitalario() {
         cargarMedicosDesdeCSV();
         cargarPacientesDesdeCSV();
+        cargarCitasDesdeCSV();
     }
 
     ~GestorHospitalario() {
         guardarMedicosEnCSV();
         guardarPacientesEnCSV();
+        guardarCitasEnCSV();
     }
 
 
@@ -534,6 +716,32 @@ public:
 
         if (!encontrado) {
             cout << "No se encontraron pacientes con enfermedades crónicas.\n";
+        }
+    }
+
+    void listarPacientesPorRangoDeFechas() {
+        string fechaInicio, fechaFin;
+        cout << "\nIntroduzca la fecha de inicio (DD-MM-AAAA): ";
+        cin.ignore();
+        getline(cin, fechaInicio);
+        cout << "Introduzca la fecha de fin (DD-MM-AAAA): ";
+        getline(cin, fechaFin);
+
+        cout << "\n=== Pacientes atendidos entre " << fechaInicio << " y " << fechaFin << " ===\n";
+        bool encontrado = false;
+
+        for (const auto& cita : citas) {
+            if (cita.getFecha() >= fechaInicio && cita.getFecha() <= fechaFin) {
+                Paciente* paciente = buscarPacientePorID(cita.getIdPaciente());
+                if (paciente) {
+                    paciente->mostrarDatos();
+                    encontrado = true;
+                }
+            }
+        }
+
+        if (!encontrado) {
+            cout << "No se encontraron pacientes en el rango de fechas especificado.\n";
         }
     }
 
