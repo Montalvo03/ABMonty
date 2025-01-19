@@ -188,6 +188,72 @@ public:
         }
     }
 
+    void listarCitasPasadas() {
+        string fechaActual = obtenerFechaActual();
+
+        cout << "\n=== Listado de Citas Pasadas ===\n";
+        bool encontrado = false;
+
+        for (const auto& cita : citas) {
+            if (cita.getFecha() < fechaActual) {
+                cita.mostrarDatos();
+                encontrado = true;
+            }
+        }
+
+        if (!encontrado) {
+            cout << "No se encontraron citas pasadas.\n";
+        }
+    }
+
+    void menuListarCitas() {
+        int opcion;
+        do {
+            cout << "\n=== Submenú de Listado de Citas ===\n";
+            cout << "1. Listar Todas las Citas\n";
+            cout << "2. Listar Citas Pasadas\n";
+            cout << "3. Listar Citas Futuras\n";
+            cout << "4. Volver al Menú de Citas\n";
+            cout << "Seleccione una opción: ";
+            cin >> opcion;
+
+            switch (opcion) {
+            case 1:
+                listarCitas();
+                break;
+            case 2:
+                listarCitasPasadas();
+                break;
+            case 3:
+                listarCitasFuturas();
+                break;
+            case 4:
+                cout << "Volviendo al Menú de Citas...\n";
+                break;
+            default:
+                cout << "Opción no válida. Intente de nuevo.\n";
+            }
+        } while (opcion != 4);
+    }
+
+    void listarCitasFuturas() {
+        string fechaActual = obtenerFechaActual();
+
+        cout << "\n=== Listado de Citas Futuras ===\n";
+        bool encontrado = false;
+
+        for (const auto& cita : citas) {
+            if (cita.getFecha() >= fechaActual) {
+                cita.mostrarDatos();
+                encontrado = true;
+            }
+        }
+
+        if (!encontrado) {
+            cout << "No se encontraron citas futuras.\n";
+        }
+    }
+
     void agregarCita() {
         int nuevoIDCita = calcularNuevoIDCitas();
         int idPaciente, idMedico;
@@ -410,7 +476,7 @@ public:
 
             switch (opcion) {
             case 1:
-                listarCitas();
+                menuListarCitas();
                 break;
             case 2:
                 agregarCita();
@@ -435,6 +501,7 @@ public:
             }
         } while (opcion != 7);
     }
+
 
 
 
