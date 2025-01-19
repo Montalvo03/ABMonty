@@ -144,6 +144,49 @@ class GestorHospitalario {
     vector<Paciente> pacientes;
     vector<CitaMedica> citas;
 
+
+public:
+
+    //Métodos paara citas
+    void cargarCitasDesdeCSV() {
+        ifstream archivo("citas.csv");
+        if (!archivo) {
+            ofstream nuevoArchivo("citas.csv");
+            nuevoArchivo.close();
+            return;
+        }
+
+        string linea;
+        while (getline(archivo, linea)) {
+            if (!linea.empty()) {
+                stringstream ss(linea);
+                string idCitaStr, idPacienteStr, idMedicoStr, fecha, motivo, urgencia;
+                getline(ss, idCitaStr, ',');
+                getline(ss, idPacienteStr, ',');
+                getline(ss, idMedicoStr, ',');
+                getline(ss, fecha, ',');
+                getline(ss, motivo, ',');
+                getline(ss, urgencia, ',');
+
+                try {
+                    citas.emplace_back(stoi(idCitaStr), stoi(idPacienteStr), stoi(idMedicoStr), fecha, motivo, urgencia);
+                }
+                catch (const invalid_argument&) {
+                    cout << "Línea inválida en el archivo CSV de citas, se ignorará.\n";
+                }
+            }
+        }
+        archivo.close();
+    }
+
+    void guardarCitasEnCSV() const {
+        ofstream archivo("citas.csv", ios::trunc);
+        for (const auto& cita : citas) {
+            archivo << cita.getIdCita() << "," << cita.getIdPaciente() << "," << cita.getIdMedico() << "," << cita.getFecha() << "," << cita.getMotivo() << "," << cita.getUrgencia() << endl;
+        }
+        archivo.close();
+    }
+
     int calcularNuevoIDCitas() const {
         if (citas.empty()) {
             return 1;
@@ -154,26 +197,6 @@ class GestorHospitalario {
         }
         return maxID + 1;
     }
-
-    bool existeMedico(int idMedico) const {
-        for (const auto& medico : medicos) {
-            if (medico.getId() == idMedico) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    bool existePaciente(int idPaciente) const {
-        for (const auto& paciente : pacientes) {
-            if (paciente.getId() == idPaciente) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-public:
 
     // Funciones de Citas Médicas
     void listarCitas() const {
@@ -206,6 +229,24 @@ public:
         }
     }
 
+    void listarCitasFuturas() {
+        string fechaActual = obtenerFechaActual();
+
+        cout << "\n=== Listado de Citas Futuras ===\n";
+        bool encontrado = false;
+
+        for (const auto& cita : citas) {
+            if (cita.getFecha() >= fechaActual) {
+                cita.mostrarDatos();
+                encontrado = true;
+            }
+        }
+
+        if (!encontrado) {
+            cout << "No se encontraron citas futuras.\n";
+        }
+    }
+
     void menuListarCitas() {
         int opcion;
         do {
@@ -234,24 +275,6 @@ public:
                 cout << "Opción no válida. Intente de nuevo.\n";
             }
         } while (opcion != 4);
-    }
-
-    void listarCitasFuturas() {
-        string fechaActual = obtenerFechaActual();
-
-        cout << "\n=== Listado de Citas Futuras ===\n";
-        bool encontrado = false;
-
-        for (const auto& cita : citas) {
-            if (cita.getFecha() >= fechaActual) {
-                cita.mostrarDatos();
-                encontrado = true;
-            }
-        }
-
-        if (!encontrado) {
-            cout << "No se encontraron citas futuras.\n";
-        }
     }
 
     void agregarCita() {
@@ -458,7 +481,6 @@ public:
         }
     }
 
-
     // Menú de Citas Médicas
     void menuCitas() {
         int opcion;
@@ -502,9 +524,6 @@ public:
         } while (opcion != 7);
     }
 
-
-
-
     // Métodos para manejar médicos
     void cargarMedicosDesdeCSV() {
         ifstream archivo("medicos.csv");
@@ -547,6 +566,25 @@ public:
         return maxID + 1;
     }
 
+
+    bool existeMedico(int idMedico) const {
+        for (const auto& medico : medicos) {
+            if (medico.getId() == idMedico) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool existePaciente(int idPaciente) const {
+        for (const auto& paciente : pacientes) {
+            if (paciente.getId() == idPaciente) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     Medico* buscarMedicoPorID(int id) {
         for (auto& medico : medicos) {
             if (medico.getId() == id) {
@@ -581,6 +619,163 @@ public:
         }
         return medicosEncontrados;
     }
+
+    // Funciones para médicos
+    void listarMedicos() const {
+        if (medicos.empty()) {
+            cout << "No hay médicos registrados.\n";
+            return;
+        }
+        for (const auto& medico : medicos)
+            medico.mostrarDatos();
+    }
+
+    void listarMedicosPorEspecialidad() {
+        string especialidad;
+        cout << "Introduzca la especialidad del médico: ";
+        cin.ignore();
+        getline(cin, especialidad);
+
+        vector<Medico*> medicosEncontrados = buscarMedicoPorEspecialidad(especialidad);
+        if (medicosEncontrados.empty()) {
+            cout << "No se encontraron médicos con esa especialidad.\n";
+        }
+        else {
+            cout << "Médicos con especialidad '" << especialidad << "':\n";
+            for (auto medico : medicosEncontrados) {
+                medico->mostrarDatos();
+            }
+        }
+    }
+
+    void listarMedicosPorDisponibilidad() {
+        string fecha;
+        cout << "Introduzca la fecha (DD-MM-AAAA): ";
+        cin.ignore();
+        getline(cin, fecha);
+
+        cout << "\n=== Médicos disponibles el " << fecha << " ===\n";
+        bool encontrado = false;
+
+        for (const auto& medico : medicos) {
+            // Comprueba si el médico tiene alguna cita en esa fecha
+            bool tieneCita = false;
+            for (const auto& cita : citas) {
+                if (cita.getIdMedico() == medico.getId() && cita.getFecha() == fecha) {
+                    tieneCita = true;
+                    break;
+                }
+            }
+
+            // Si el médico no tiene citas ese día, lo muestra
+            if (!tieneCita) {
+                medico.mostrarDatos();
+                encontrado = true;
+            }
+        }
+
+        if (!encontrado) {
+            cout << "No se encontraron médicos disponibles el " << fecha << ".\n";
+        }
+    }
+
+    void agregarMedico() {
+        string nombre, especialidad;
+        int nuevoID = calcularNuevoIDMedicos();
+
+        cout << "Introduzca Nombre: ";
+        cin.ignore();
+        getline(cin, nombre);
+        cout << "Introduzca Especialidad: ";
+        getline(cin, especialidad);
+
+        medicos.push_back(Medico(nuevoID, nombre, especialidad));
+        guardarMedicosEnCSV();
+        cout << "Médico añadido con éxito. ID asignado: " << nuevoID << endl;
+    }
+
+    void eliminarMedico() {
+        int id;
+        cout << "Introduzca el ID del médico a eliminar: ";
+        cin >> id;
+
+        for (auto it = medicos.begin(); it != medicos.end(); ++it) {
+            if (it->getId() == id) {
+                medicos.erase(it);
+                guardarMedicosEnCSV();
+                cout << "Médico eliminado con éxito.\n";
+                return;
+            }
+        }
+        cout << "Médico con ID " << id << " no encontrado.\n";
+    }
+
+    void editarMedico() {
+        int id;
+        cout << "Introduzca el ID del médico a editar: ";
+        cin >> id;
+
+        for (auto& medico : medicos) {
+            if (medico.getId() == id) {
+                string nuevoNombre, nuevaEspecialidad;
+                cout << "Introduzca el nuevo nombre (actual: " << medico.getNombre() << "): ";
+                cin.ignore();
+                getline(cin, nuevoNombre);
+                cout << "Introduzca la nueva especialidad (actual: " << medico.getEspecialidad() << "): ";
+                getline(cin, nuevaEspecialidad);
+
+                medico = Medico(id, nuevoNombre, nuevaEspecialidad);
+                guardarMedicosEnCSV();
+                cout << "Médico actualizado con éxito.\n";
+                return;
+            }
+        }
+        cout << "Médico con ID " << id << " no encontrado.\n";
+    }
+
+    // Menú de médicos
+    void menuMedicos() {
+        int opcion;
+        do {
+            cout << "\n=== Menú de Médicos ===\n";
+            cout << "1. Listar Médicos\n";
+            cout << "2. Listar Médicos por Especialidad\n";
+            cout << "3. Listar Médicos por Disponibilidad\n";
+            cout << "4. Añadir Médico\n";
+            cout << "5. Eliminar Médico\n";
+            cout << "6. Editar Médico\n";
+            cout << "7. Volver al Menú Principal\n";
+            cout << "Seleccione una opción: ";
+            cin >> opcion;
+
+            switch (opcion) {
+            case 1:
+                listarMedicos();
+                break;
+            case 2:
+                listarMedicosPorEspecialidad();
+                break;
+            case 3:
+                listarMedicosPorDisponibilidad();
+                break;
+            case 4:
+                agregarMedico();
+                break;
+            case 5:
+                eliminarMedico();
+                break;
+            case 6:
+                editarMedico();
+                break;
+            case 7:
+                cout << "Volviendo al Menú Principal...\n";
+                break;
+            default:
+                cout << "Opción no válida. Intente de nuevo.\n";
+            }
+        } while (opcion != 7);
+    }
+
 
     // Métodos para manejar pacientes
     void cargarPacientesDesdeCSV() {
@@ -671,229 +866,58 @@ public:
             cout << "No se encontraron pacientes con la fecha de ingreso especificada.\n";
         }
     }
-public:
-        // Constructor y Destructor
-        GestorHospitalario() {
-            cargarMedicosDesdeCSV();
-            cargarPacientesDesdeCSV();
-            cargarCitasDesdeCSV();
-        }
 
-        ~GestorHospitalario() {
-            guardarMedicosEnCSV();
-            guardarPacientesEnCSV();
-            guardarCitasEnCSV();
-        }
+    void menuBuscarPacientes() {
+        int opcion;
+        do {
+            cout << "\n=== Menú de Búsqueda de Pacientes ===\n";
+            cout << "1. Buscar por Nombre\n";
+            cout << "2. Buscar por ID\n";
+            cout << "3. Buscar por Fecha de Ingreso\n";
+            cout << "4. Volver al Menú de Pacientes\n";
+            cout << "Seleccione una opción: ";
+            cin >> opcion;
 
-
-        void menuBuscarPacientes() {
-            int opcion;
-            do {
-                cout << "\n=== Menú de Búsqueda de Pacientes ===\n";
-                cout << "1. Buscar por Nombre\n";
-                cout << "2. Buscar por ID\n";
-                cout << "3. Buscar por Fecha de Ingreso\n";
-                cout << "4. Volver al Menú de Pacientes\n";
-                cout << "Seleccione una opción: ";
-                cin >> opcion;
-
-                switch (opcion) {
-                case 1:
-                    buscarPacientePorNombre();
-                    break;
-                case 2: {
-                    int id;
-                    cout << "Introduzca el ID del paciente a buscar: ";
-                    cin >> id;
-                    Paciente* paciente = buscarPacientePorID(id); // Busca al paciente por ID
-                    if (paciente) {
-                        paciente->mostrarDatos();
-                    }
-                    else {
-                        cout << "No se encontró ningún paciente con el ID especificado.\n";
-                    }
-                    break;
+            switch (opcion) {
+            case 1:
+                buscarPacientePorNombre();
+                break;
+            case 2: {
+                int id;
+                cout << "Introduzca el ID del paciente a buscar: ";
+                cin >> id;
+                Paciente* paciente = buscarPacientePorID(id); // Busca al paciente por ID
+                if (paciente) {
+                    paciente->mostrarDatos();
                 }
-                case 3:
-                    buscarPacientePorFechaIngreso();
-                    break;
-                case 4:
-                    cout << "Volviendo al Menú de Pacientes...\n";
-                    break;
-                default:
-                    cout << "Opción no válida. Intente de nuevo.\n";
+                else {
+                    cout << "No se encontró ningún paciente con el ID especificado.\n";
                 }
-            } while (opcion != 4);
-        }
-
-
-      //Métodos para manejar citas
-      void cargarCitasDesdeCSV() {
-        ifstream archivo("citas.csv");
-        if (!archivo) {
-            ofstream nuevoArchivo("citas.csv");
-            nuevoArchivo.close();
-            return;
-        }
-
-        string linea;
-        while (getline(archivo, linea)) {
-            if (!linea.empty()) {
-                stringstream ss(linea);
-                string idCitaStr, idPacienteStr, idMedicoStr, fecha, motivo, urgencia;
-                getline(ss, idCitaStr, ',');
-                getline(ss, idPacienteStr, ',');
-                getline(ss, idMedicoStr, ',');
-                getline(ss, fecha, ',');
-                getline(ss, motivo, ',');
-                getline(ss, urgencia, ',');
-
-                try {
-                    citas.emplace_back(stoi(idCitaStr), stoi(idPacienteStr), stoi(idMedicoStr), fecha, motivo, urgencia);
-                }
-                catch (const invalid_argument&) {
-                    cout << "Línea inválida en el archivo CSV de citas, se ignorará.\n";
-                }
+                break;
             }
-        }
-        archivo.close();
-      }
-
-      void guardarCitasEnCSV() const {
-        ofstream archivo("citas.csv", ios::trunc);
-        for (const auto& cita : citas) {
-            archivo << cita.getIdCita() << "," << cita.getIdPaciente() << "," << cita.getIdMedico() << "," << cita.getFecha() << "," << cita.getMotivo() << "," << cita.getUrgencia() << endl;
-        }
-        archivo.close();
-      }
-
-
-      // Funciones para médicos
-      void listarMedicos() const {
-        if (medicos.empty()) {
-            cout << "No hay médicos registrados.\n";
-            return;
-        }
-        for (const auto& medico : medicos)
-            medico.mostrarDatos();
-      }
- 
-      void listarMedicosPorEspecialidad() {
-        string especialidad;
-        cout << "Introduzca la especialidad del médico: ";
-        cin.ignore();
-        getline(cin, especialidad);
-
-        vector<Medico*> medicosEncontrados = buscarMedicoPorEspecialidad(especialidad);
-        if (medicosEncontrados.empty()) {
-            cout << "No se encontraron médicos con esa especialidad.\n";
-        }
-        else {
-            cout << "Médicos con especialidad '" << especialidad << "':\n";
-            for (auto medico : medicosEncontrados) {
-                medico->mostrarDatos();
+            case 3:
+                buscarPacientePorFechaIngreso();
+                break;
+            case 4:
+                cout << "Volviendo al Menú de Pacientes...\n";
+                break;
+            default:
+                cout << "Opción no válida. Intente de nuevo.\n";
             }
-        }
-      }
+        } while (opcion != 4);
+    }
 
-      void listarMedicosPorDisponibilidad() {
-          string fecha;
-          cout << "Introduzca la fecha (DD-MM-AAAA): ";
-          cin.ignore();
-          getline(cin, fecha);
-
-          cout << "\n=== Médicos disponibles el " << fecha << " ===\n";
-          bool encontrado = false;
-
-          for (const auto& medico : medicos) {
-              // Comprueba si el médico tiene alguna cita en esa fecha
-              bool tieneCita = false;
-              for (const auto& cita : citas) {
-                  if (cita.getIdMedico() == medico.getId() && cita.getFecha() == fecha) {
-                      tieneCita = true;
-                      break;
-                  }
-              }
-
-              // Si el médico no tiene citas ese día, lo muestra
-              if (!tieneCita) {
-                  medico.mostrarDatos();
-                  encontrado = true;
-              }
-          }
-
-          if (!encontrado) {
-              cout << "No se encontraron médicos disponibles el " << fecha << ".\n";
-          }
-      }
-
-
-
-      void agregarMedico() {
-        string nombre, especialidad;
-        int nuevoID = calcularNuevoIDMedicos();
-
-        cout << "Introduzca Nombre: ";
-        cin.ignore();
-        getline(cin, nombre);
-        cout << "Introduzca Especialidad: ";
-        getline(cin, especialidad);
-
-        medicos.push_back(Medico(nuevoID, nombre, especialidad));
-        guardarMedicosEnCSV();
-        cout << "Médico añadido con éxito. ID asignado: " << nuevoID << endl;
-      }
-
-      void eliminarMedico() {
-        int id;
-        cout << "Introduzca el ID del médico a eliminar: ";
-        cin >> id;
-
-        for (auto it = medicos.begin(); it != medicos.end(); ++it) {
-            if (it->getId() == id) {
-                medicos.erase(it);
-                guardarMedicosEnCSV();
-                cout << "Médico eliminado con éxito.\n";
-                return;
-            }
-        }
-        cout << "Médico con ID " << id << " no encontrado.\n";
-      }
-
-      void editarMedico() {
-        int id;
-        cout << "Introduzca el ID del médico a editar: ";
-        cin >> id;
-
-        for (auto& medico : medicos) {
-            if (medico.getId() == id) {
-                string nuevoNombre, nuevaEspecialidad;
-                cout << "Introduzca el nuevo nombre (actual: " << medico.getNombre() << "): ";
-                cin.ignore();
-                getline(cin, nuevoNombre);
-                cout << "Introduzca la nueva especialidad (actual: " << medico.getEspecialidad() << "): ";
-                getline(cin, nuevaEspecialidad);
-
-                medico = Medico(id, nuevoNombre, nuevaEspecialidad);
-                guardarMedicosEnCSV();
-                cout << "Médico actualizado con éxito.\n";
-                return;
-            }
-        }
-        cout << "Médico con ID " << id << " no encontrado.\n";
-      }
-
-      // Funciones para pacientes
-      void listarPacientes() const {
+    // Funciones para pacientes
+    void listarPacientes() const {
         if (pacientes.empty()) {
             cout << "No hay pacientes registrados.\n";
             return;
         }
         for (const auto& paciente : pacientes)
             paciente.mostrarDatos();
-      }
+    }
 
-      void agregarPaciente() {
+    void agregarPaciente() {
         string nombre, historial;
         int nuevoID = calcularNuevoIDPacientes();
         string fechaIngreso = obtenerFechaActual();
@@ -905,12 +929,12 @@ public:
         getline(cin, historial);
 
         Paciente nuevoPaciente(nuevoID, nombre, historial, fechaIngreso);
-         pacientes.push_back(nuevoPaciente);
+        pacientes.push_back(nuevoPaciente);
         guardarPacientesEnCSV();
         cout << "Paciente añadido con éxito. ID asignado: " << nuevoID << ", Fecha de Ingreso: " << fechaIngreso << endl;
-      }
+    }
 
-      void eliminarPaciente() {
+    void eliminarPaciente() {
         int id;
         cout << "Introduzca el ID del paciente a eliminar: ";
         cin >> id;
@@ -924,9 +948,9 @@ public:
             }
         }
         cout << "Paciente con ID " << id << " no encontrado.\n";
-      }
+    }
 
-      void editarPaciente() {
+    void editarPaciente() {
         int id;
         cout << "Introduzca el ID del paciente a editar: ";
         cin >> id;
@@ -944,15 +968,15 @@ public:
                 paciente.setNombre(nuevoNombre);
                 paciente.setHistorial(nuevoHistorial);
 
-                guardarPacientesEnCSV(); 
+                guardarPacientesEnCSV();
                 cout << "Paciente actualizado con éxito.\n";
                 return;
             }
         }
         cout << "Paciente con ID " << id << " no encontrado.\n";
-      }
+    }
 
-      void listarPacientesConCronicas() const {
+    void listarPacientesConCronicas() const {
         cout << "\n=== Pacientes con Enfermedades Crónicas ===\n";
         bool encontrado = false;
 
@@ -967,117 +991,85 @@ public:
         if (!encontrado) {
             cout << "No se encontraron pacientes con enfermedades crónicas.\n";
         }
-      }
+    }
 
-      void listarPacientesPorRangoDeFechas() {
-          string fechaInicio, fechaFin;
-          cout << "\nIntroduzca la fecha de inicio (DD-MM-AAAA): ";
-          cin.ignore();
-          getline(cin, fechaInicio);
-          cout << "Introduzca la fecha de fin (DD-MM-AAAA): ";
-          getline(cin, fechaFin);
+    void listarPacientesPorRangoDeFechas() {
+        string fechaInicio, fechaFin;
+        cout << "\nIntroduzca la fecha de inicio (DD-MM-AAAA): ";
+        cin.ignore();
+        getline(cin, fechaInicio);
+        cout << "Introduzca la fecha de fin (DD-MM-AAAA): ";
+        getline(cin, fechaFin);
 
-          cout << "\n=== Pacientes atendidos entre " << fechaInicio << " y " << fechaFin << " ===\n";
-          bool encontrado = false;
+        cout << "\n=== Pacientes atendidos entre " << fechaInicio << " y " << fechaFin << " ===\n";
+        bool encontrado = false;
 
-          for (const auto& cita : citas) {
-              if (cita.getFecha() >= fechaInicio && cita.getFecha() <= fechaFin) {
-                  Paciente* paciente = buscarPacientePorID(cita.getIdPaciente());
-                  if (paciente) {
-                      paciente->mostrarDatos();
-                      encontrado = true;
-                  }
-              }
-          }
+        for (const auto& cita : citas) {
+            if (cita.getFecha() >= fechaInicio && cita.getFecha() <= fechaFin) {
+                Paciente* paciente = buscarPacientePorID(cita.getIdPaciente());
+                if (paciente) {
+                    paciente->mostrarDatos();
+                    encontrado = true;
+                }
+            }
+        }
 
-          if (!encontrado) {
-              cout << "No se encontraron pacientes en el rango de fechas especificado.\n";
-          }
-      }
+        if (!encontrado) {
+            cout << "No se encontraron pacientes en el rango de fechas especificado.\n";
+        }
+    }
 
-      // Menú de médicos
-      void menuMedicos() {
-          int opcion;
-          do {
-              cout << "\n=== Menú de Médicos ===\n";
-              cout << "1. Listar Médicos\n";
-              cout << "2. Listar Médicos por Especialidad\n";
-              cout << "3. Listar Médicos por Disponibilidad\n";
-              cout << "4. Añadir Médico\n";
-              cout << "5. Eliminar Médico\n";
-              cout << "6. Editar Médico\n";
-              cout << "7. Volver al Menú Principal\n";
-              cout << "Seleccione una opción: ";
-              cin >> opcion;
+    // Menú de pacientes
+    void menuPacientes() {
+        int opcion;
+        do {
+            cout << "\n=== Menú de Pacientes ===\n";
+            cout << "1. Listar Pacientes\n";
+            cout << "2. Añadir Paciente\n";
+            cout << "3. Eliminar Paciente\n";
+            cout << "4. Editar Paciente\n";
+            cout << "5. Buscar Pacientes\n";
+            cout << "6. Volver al Menú Principal\n";
+            cout << "Seleccione una opción: ";
+            cin >> opcion;
 
-              switch (opcion) {
-              case 1:
-                  listarMedicos();
-                  break;
-              case 2:
-                  listarMedicosPorEspecialidad();
-                  break;
-              case 3:
-                  listarMedicosPorDisponibilidad();
-                  break;
-              case 4:
-                  agregarMedico();
-                  break;
-              case 5:
-                  eliminarMedico();
-                  break;
-              case 6:
-                  editarMedico();
-                  break;
-              case 7:
-                  cout << "Volviendo al Menú Principal...\n";
-                  break;
-              default:
-                  cout << "Opción no válida. Intente de nuevo.\n";
-              }
-          } while (opcion != 7);
-      }
+            switch (opcion) {
+            case 1:
+                listarPacientes();
+                break;
+            case 2:
+                agregarPaciente();
+                break;
+            case 3:
+                eliminarPaciente();
+                break;
+            case 4:
+                editarPaciente();
+                break;
+            case 5:
+                menuBuscarPacientes();
+                break;
+            case 6:
+                cout << "Volviendo al Menú Principal...\n";
+                break;
+            default:
+                cout << "Opción no válida. Intente de nuevo.\n";
+            }
+        } while (opcion != 6);
+    }
 
+        // Constructor y Destructor
+        GestorHospitalario() {
+            cargarMedicosDesdeCSV();
+            cargarPacientesDesdeCSV();
+            cargarCitasDesdeCSV();
+        }
 
-      // Menú de pacientes
-      void menuPacientes() {
-          int opcion;
-          do {
-              cout << "\n=== Menú de Pacientes ===\n";
-              cout << "1. Listar Pacientes\n";
-              cout << "2. Añadir Paciente\n";
-              cout << "3. Eliminar Paciente\n";
-              cout << "4. Editar Paciente\n";
-              cout << "5. Buscar Pacientes\n";
-              cout << "6. Volver al Menú Principal\n";
-              cout << "Seleccione una opción: ";
-              cin >> opcion;
-
-              switch (opcion) {
-              case 1:
-                  listarPacientes();
-                  break;
-              case 2:
-                  agregarPaciente();
-                  break;
-              case 3:
-                  eliminarPaciente();
-                  break;
-              case 4:
-                  editarPaciente();
-                  break;
-              case 5:
-                  menuBuscarPacientes();
-                  break;
-              case 6:
-                  cout << "Volviendo al Menú Principal...\n";
-                  break;
-              default:
-                  cout << "Opción no válida. Intente de nuevo.\n";
-              }
-          } while (opcion != 6);
-      }
-
+        ~GestorHospitalario() {
+            guardarMedicosEnCSV();
+            guardarPacientesEnCSV();
+            guardarCitasEnCSV();
+        }
 
       // Menú reportes
       void menuReportes() {
