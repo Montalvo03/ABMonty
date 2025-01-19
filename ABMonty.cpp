@@ -343,6 +343,56 @@ public:
         }
     }
 
+    void ordenarCitasPorFecha() {
+        string fechaActual = obtenerFechaActual();
+
+        cout << "\n=== Citas ordenadas por fecha desde " << fechaActual << " ===\n";
+
+        // Filtrar citas desde la fecha actual en adelante
+        vector<CitaMedica> citasFuturas;
+        for (const auto& cita : citas) {
+            if (cita.getFecha() >= fechaActual) {
+                citasFuturas.push_back(cita);
+            }
+        }
+
+        // Ordenar las citas por fecha
+        sort(citasFuturas.begin(), citasFuturas.end(), [](const CitaMedica& a, const CitaMedica& b) {
+            return a.getFecha() < b.getFecha();
+            });
+
+        // Mostrar las citas ordenadas
+        if (citasFuturas.empty()) {
+            cout << "No hay citas futuras registradas.\n";
+        }
+        else {
+            for (const auto& cita : citasFuturas) {
+                cita.mostrarDatos();
+            }
+        }
+    }
+
+    void ordenarCitasPorUrgencia() {
+        cout << "\n=== Citas ordenadas por urgencia ===\n";
+
+        // Ordenar las citas por urgencia: Alta > Media > Baja
+        sort(citas.begin(), citas.end(), [](const CitaMedica& a, const CitaMedica& b) {
+            map<string, int> prioridad = { {"Alta", 1}, {"Media", 2}, {"Baja", 3} };
+            return prioridad[a.getUrgencia()] < prioridad[b.getUrgencia()];
+            });
+
+        // Mostrar las citas ordenadas
+        if (citas.empty()) {
+            cout << "No hay citas registradas.\n";
+        }
+        else {
+            for (const auto& cita : citas) {
+                cita.mostrarDatos();
+            }
+        }
+    }
+
+
     // Menú de Citas Médicas
     void menuCitas() {
         int opcion;
@@ -352,7 +402,9 @@ public:
             cout << "2. Añadir Cita\n";
             cout << "3. Eliminar Cita\n";
             cout << "4. Editar Cita\n";
-            cout << "5. Volver al Menú Principal\n";
+            cout << "5. Ordenar Citas por Fecha\n";
+            cout << "6. Ordenar Citas por Urgencia\n";
+            cout << "7. Volver al Menú Principal\n";
             cout << "Seleccione una opción: ";
             cin >> opcion;
 
@@ -370,13 +422,20 @@ public:
                 editarCita();
                 break;
             case 5:
+                ordenarCitasPorFecha();
+                break;
+            case 6:
+                ordenarCitasPorUrgencia();
+                break;
+            case 7:
                 cout << "Volviendo al Menú Principal...\n";
                 break;
             default:
                 cout << "Opción no válida. Intente de nuevo.\n";
             }
-        } while (opcion != 5);
+        } while (opcion != 7);
     }
+
 
 
     // Métodos para manejar médicos
@@ -670,6 +729,39 @@ public:
         }
       }
 
+      void listarMedicosPorDisponibilidad() {
+          string fecha;
+          cout << "Introduzca la fecha (DD-MM-AAAA): ";
+          cin.ignore();
+          getline(cin, fecha);
+
+          cout << "\n=== Médicos disponibles el " << fecha << " ===\n";
+          bool encontrado = false;
+
+          for (const auto& medico : medicos) {
+              // Comprueba si el médico tiene alguna cita en esa fecha
+              bool tieneCita = false;
+              for (const auto& cita : citas) {
+                  if (cita.getIdMedico() == medico.getId() && cita.getFecha() == fecha) {
+                      tieneCita = true;
+                      break;
+                  }
+              }
+
+              // Si el médico no tiene citas ese día, lo muestra
+              if (!tieneCita) {
+                  medico.mostrarDatos();
+                  encontrado = true;
+              }
+          }
+
+          if (!encontrado) {
+              cout << "No se encontraron médicos disponibles el " << fecha << ".\n";
+          }
+      }
+
+
+
       void agregarMedico() {
         string nombre, especialidad;
         int nuevoID = calcularNuevoIDMedicos();
@@ -838,42 +930,47 @@ public:
 
       // Menú de médicos
       void menuMedicos() {
-        int opcion;
-        do {
-            cout << "\n=== Menú de Médicos ===\n";
-            cout << "1. Listar Médicos\n";
-            cout << "2. Listar Médicos por Especialidad\n";
-            cout << "3. Añadir Médico\n";
-            cout << "4. Eliminar Médico\n";
-            cout << "5. Editar Médico\n";
-            cout << "6. Volver al Menú Principal\n";
-            cout << "Seleccione una opción: ";
-            cin >> opcion;
+          int opcion;
+          do {
+              cout << "\n=== Menú de Médicos ===\n";
+              cout << "1. Listar Médicos\n";
+              cout << "2. Listar Médicos por Especialidad\n";
+              cout << "3. Listar Médicos por Disponibilidad\n";
+              cout << "4. Añadir Médico\n";
+              cout << "5. Eliminar Médico\n";
+              cout << "6. Editar Médico\n";
+              cout << "7. Volver al Menú Principal\n";
+              cout << "Seleccione una opción: ";
+              cin >> opcion;
 
-            switch (opcion) {
-            case 1:
-                listarMedicos();
-                break;
-            case 2:
-                listarMedicosPorEspecialidad();
-                break;
-            case 3:
-                agregarMedico();
-                break;
-            case 4:
-                eliminarMedico();
-                break;
-            case 5:
-                editarMedico();
-                break;
-            case 6:
-                cout << "Volviendo al Menú Principal...\n";
-                break;
-            default:
-                cout << "Opción no válida. Intente de nuevo.\n";
-            }
-        } while (opcion != 6);
+              switch (opcion) {
+              case 1:
+                  listarMedicos();
+                  break;
+              case 2:
+                  listarMedicosPorEspecialidad();
+                  break;
+              case 3:
+                  listarMedicosPorDisponibilidad();
+                  break;
+              case 4:
+                  agregarMedico();
+                  break;
+              case 5:
+                  eliminarMedico();
+                  break;
+              case 6:
+                  editarMedico();
+                  break;
+              case 7:
+                  cout << "Volviendo al Menú Principal...\n";
+                  break;
+              default:
+                  cout << "Opción no válida. Intente de nuevo.\n";
+              }
+          } while (opcion != 7);
       }
+
 
       // Menú de pacientes
       void menuPacientes() {
